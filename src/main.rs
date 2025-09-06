@@ -1,6 +1,10 @@
-use iced::border::Radius;
-use iced::{Background, Border, Color, Element, Length, Alignment};
-use iced::widget::{button, container, Button, Column, Container, Row, Text, Theme};
+use iced::{Background, Element, Length};
+use iced::widget::{container, Container, Row, Text, Theme};
+
+mod widgets;
+
+use crate::widgets::sidebar::{SideBar};
+
 
 #[derive(Default)]
 struct StockManagement {
@@ -36,48 +40,7 @@ impl StockManagement {
 
     fn view(&self) -> Element<Message> {
         
-        let menus: [(&'static str, Screen); 5]  = [
-            ("Dashboard", Screen::Dashboard),
-            ("Products", Screen::Products),
-            ("Suppliers", Screen::Suppliers),
-            ("Places", Screen::Places),
-            ("Inventory Transactions", Screen::InventoryTransactions),
-        ];
-            
-            
-        let side_menu = menus.iter().fold(
-            Column::new().width(Length::Fill),
-            |column, menu| {
-                let mut button = Button::new(Text::new(menu.0))
-                    .width(Length::Fill)
-                    .style(|theme: &Theme, status| {
-                        let palette = theme.extended_palette();
-                        
-                        match status {
-                            button::Status::Active => {
-                                button::Style{
-                                    text_color: palette.background.base.text,
-                                    border: Border{ radius: Radius::new(0), width: 0.0, color: Color::BLACK},
-                                    ..Default::default()
-                                }
-                            }
-                            _ => button::primary(theme, status)
-                        }
-                    });
-
-                if self.screen != menu.1 {
-                    button = button.on_press(Message::SwitchScreen(menu.1));
-                }
-
-                column.push(button)
-            }
-        );
-
-        let side_header = Container::new(Text::new("Stock Management"))
-            .width(Length::Fill).height(80)
-            .align_y(Alignment::Center)
-            .align_x(Alignment::Center);
-        
+        let sidebar = SideBar::new().view(&self.screen);
 
         let divider = Container::new("")
             .width(Length::Fixed(1.0)).height(Length::Fill)
@@ -98,10 +61,6 @@ impl StockManagement {
             Screen::Places => Text::new("Places"),
             Screen::InventoryTransactions => Text::new("Transactions"),
         };
-
-        let sidebar = Column::new().width(Length::Fixed(200.0))
-            .push(side_header)
-            .push(side_menu);
 
         Row::new()
             .push(sidebar)
