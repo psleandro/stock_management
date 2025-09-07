@@ -5,3 +5,5 @@ edition = "2024"
 
 [dependencies]
 iced = "*"
+diesel = { version = "2.2.4", features = ["sqlite"] }
+dotenvy = "0.15"
