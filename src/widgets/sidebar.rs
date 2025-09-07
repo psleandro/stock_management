@@ -3,26 +3,26 @@ use iced::widget::{button, Button, Container, Column, Text, Theme};
 use iced::border::Radius;
 
 
-use crate::{Screen, Message};
+use crate::{ScreenId, Message};
 
 pub struct SideBar {
-    menus: [(&'static str, Screen); 5],
+    menus: [(&'static str, ScreenId); 5],
 }
 
 impl SideBar {
   	pub fn new() -> Self {
     	Self {
      		menus: [
-          		("Dashboard", Screen::Dashboard),
-          		("Products", Screen::Products),
-          		("Suppliers", Screen::Suppliers),
-          		("Places", Screen::Places),
-          		("Inventory Transactions", Screen::InventoryTransactions),
+          		("Dashboard", ScreenId::Dashboard),
+          		("Products", ScreenId::Products),
+          		("Suppliers", ScreenId::Suppliers),
+          		("Places", ScreenId::Places),
+          		("Inventory Transactions", ScreenId::InventoryTransactions),
       		],
     	}
  	}
 
-	pub fn view(&self, &screen: &Screen) -> Column<'static, Message> {
+	pub fn view(&self, &screen: &ScreenId) -> Column<'static, Message> {
 		 let side_menu = self.menus.iter().fold(
             Column::new().width(Length::Fill),
             |column, menu| {

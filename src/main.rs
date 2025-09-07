@@ -5,14 +5,8 @@ mod widgets;
 
 use crate::widgets::sidebar::{SideBar};
 
-
-#[derive(Default)]
-struct StockManagement {
-    screen: Screen,
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Screen {
+enum ScreenId {
     Dashboard,
     Products,
     Suppliers,
@@ -20,21 +14,46 @@ enum Screen {
     InventoryTransactions,
 }
 
-impl Default for Screen {
+enum ActiveScreenInstance {
+    Dashboard,
+    Products,
+    Suppliers,
+    Places,
+    InventoryTransactions,
+}
+
+struct StockManagement {
+    screen: ScreenId,
+    active_screen: ActiveScreenInstance,
+}
+
+impl Default for StockManagement {
     fn default() -> Self {
-        Screen::Dashboard
+        Self {
+            screen: ScreenId::Dashboard,
+            active_screen: ActiveScreenInstance::Dashboard,
+        }
     }
 }
 
 #[derive(Debug, Clone)]
 enum Message {
-    SwitchScreen(Screen),
+    SwitchScreen(ScreenId),
 }
 
 impl StockManagement {
     fn update(&mut self, message: Message) {
-        match message {
-            Message::SwitchScreen(screen) => self.screen = screen,
+        match (&mut self.active_screen, message) {
+            (_, Message::SwitchScreen(screen)) => {
+                self.screen = screen;
+                self.active_screen = match screen {
+                    ScreenId::Dashboard => ActiveScreenInstance::Dashboard,
+                    ScreenId::Products => ActiveScreenInstance::Products,
+                    ScreenId::Suppliers => ActiveScreenInstance::Suppliers,
+                    ScreenId::Places => ActiveScreenInstance::Places,
+                    ScreenId::InventoryTransactions => ActiveScreenInstance::InventoryTransactions,
+                }
+            },
         }
     }
 
@@ -54,12 +73,12 @@ impl StockManagement {
                 }
             });
 
-        let content: Text<_> = match self.screen {
-            Screen::Dashboard => Text::new("Dashboard"),
-            Screen::Products => Text::new("Products"),
-            Screen::Suppliers => Text::new("Suppliers"),
-            Screen::Places => Text::new("Places"),
-            Screen::InventoryTransactions => Text::new("Transactions"),
+        let content: Element<_> =   match &self.active_screen {
+            ActiveScreenInstance::Dashboard => Text::new("Dashboard").into(),
+            ActiveScreenInstance::Products => Text::new("Products").into(),
+            ActiveScreenInstance::Suppliers => Text::new("Suppliers").into(),
+            ActiveScreenInstance::Places => Text::new("Places").into(),
+            ActiveScreenInstance::InventoryTransactions => Text::new("Transactions").into(),
         };
 
         Row::new()
