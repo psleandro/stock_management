@@ -1,6 +1,9 @@
 use iced::{ Alignment, Element, Length };
 use iced::widget::{Container, Column, Row, Text, Button, Space};
 
+use crate::infra::db;
+use crate::infra::repositories::product_repository;
+
 use crate::domain::product::Product;
 
 const DEFAULT_SPACING: u16 = 24;
@@ -16,8 +19,10 @@ pub enum ProductsScreenMessage {
 }
 
 impl ProductsScreen {
-	pub fn new() -> Self {
-		Self { products: Vec::new() }
+		pub fn new() -> Self {
+			let mut connection = db::establish_connection();
+			let products = product_repository::list_products(&mut connection).unwrap();
+			Self { products }
 	}
 
 	pub fn update(&mut self, message: ProductsScreenMessage){
