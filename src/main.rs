@@ -2,6 +2,7 @@ use iced::{Background, Element, Length};
 use iced::widget::{container, Container, Row, Text, Theme};
 
 mod widgets;
+mod infra;
 mod domain;
 mod screens;
 
