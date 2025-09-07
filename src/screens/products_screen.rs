@@ -3,6 +3,7 @@ use iced::widget::{Container, Column, Row, Text, Button, Space};
 
 use crate::infra::db;
 use crate::infra::repositories::product_repository;
+use crate::infra::models::NewProductRow;
 
 use crate::domain::product::Product;
 
@@ -27,7 +28,19 @@ impl ProductsScreen {
 
 	pub fn update(&mut self, message: ProductsScreenMessage){
 		match message {
-			ProductsScreenMessage::Create => {},
+			ProductsScreenMessage::Create => {
+				let new_product = NewProductRow {
+					name: format!("Product {}", self.products.len()),
+					unity: Some("un".into()),
+					brand: Some("Brand X".into()),
+					min_stock: None,
+					observation: None,
+				};
+
+				let mut connection = db::establish_connection();
+				let product_created = product_repository::create_product(&mut connection, new_product);
+				self.products.push(product_created.unwrap());
+			},
 		}
 	}	
 
