@@ -2,7 +2,10 @@ use iced::{Background, Element, Length};
 use iced::widget::{container, Container, Row, Text, Theme};
 
 mod widgets;
+mod domain;
+mod screens;
 
+use crate::screens::products_screen::{self, ProductsScreen};
 use crate::widgets::sidebar::{SideBar};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -14,9 +17,9 @@ enum ScreenId {
     InventoryTransactions,
 }
 
-enum ActiveScreenInstance {
+pub enum ActiveScreenInstance {
     Dashboard,
-    Products,
+    Products(products_screen::ProductsScreen),
     Suppliers,
     Places,
     InventoryTransactions,
@@ -39,6 +42,7 @@ impl Default for StockManagement {
 #[derive(Debug, Clone)]
 enum Message {
     SwitchScreen(ScreenId),
+    Products(products_screen::ProductsScreenMessage),
 }
 
 impl StockManagement {
@@ -48,12 +52,14 @@ impl StockManagement {
                 self.screen = screen;
                 self.active_screen = match screen {
                     ScreenId::Dashboard => ActiveScreenInstance::Dashboard,
-                    ScreenId::Products => ActiveScreenInstance::Products,
+                    ScreenId::Products => ActiveScreenInstance::Products(ProductsScreen::new()),
                     ScreenId::Suppliers => ActiveScreenInstance::Suppliers,
                     ScreenId::Places => ActiveScreenInstance::Places,
                     ScreenId::InventoryTransactions => ActiveScreenInstance::InventoryTransactions,
                 }
             },
+            (ActiveScreenInstance::Products(screen), Message::Products(message)) => screen.update(message),
+            _ => {},
         }
     }
 
@@ -75,7 +81,7 @@ impl StockManagement {
 
         let content: Element<_> =   match &self.active_screen {
             ActiveScreenInstance::Dashboard => Text::new("Dashboard").into(),
-            ActiveScreenInstance::Products => Text::new("Products").into(),
+            ActiveScreenInstance::Products(screen) => screen.view().map(Message::Products),
             ActiveScreenInstance::Suppliers => Text::new("Suppliers").into(),
             ActiveScreenInstance::Places => Text::new("Places").into(),
             ActiveScreenInstance::InventoryTransactions => Text::new("Transactions").into(),

@@ -6,4 +6,5 @@ edition = "2024"
 [dependencies]
 iced = "*"
 diesel = { version = "2.2.4", features = ["sqlite"] }
+chrono = { version = "0.4" }
 dotenvy = "0.15"
