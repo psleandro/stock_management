@@ -16,7 +16,8 @@ pub struct ProductsScreen {
 
 #[derive(Debug, Clone)]
 pub enum ProductsScreenMessage {
-	Create
+	Create,
+	Delete(i32),
 }
 
 impl ProductsScreen {
@@ -41,6 +42,13 @@ impl ProductsScreen {
 				let product_created = product_repository::create_product(&mut connection, new_product);
 				self.products.push(product_created.unwrap());
 			},
+			ProductsScreenMessage::Delete(product_id) => {
+				let mut connection = db::establish_connection();
+				product_repository::delete_product(&mut connection, product_id).unwrap();
+				if let Some(pos) = self.products.iter().position(|p| p.id == product_id) {
+                    self.products.remove(pos);
+                }
+			},
 		}
 	}	
 
@@ -54,6 +62,7 @@ impl ProductsScreen {
 				.push(Container::new("Unity").width(Length::FillPortion(2)).padding(8))
 				.push(Container::new("Min Stock").width(Length::FillPortion(2)).padding(8))
 				.push(Container::new("Observation").width(Length::FillPortion(3)).padding(8))
+				.push(Container::new("Actions").width(Length::FillPortion(1)).align_x(Alignment::Center).padding(8))
 			),
 			|column, product| {
 				column.push(
@@ -64,6 +73,13 @@ impl ProductsScreen {
 						.push(Container::new(Text::new(product.unity.clone().unwrap_or("".to_string()))).width(Length::FillPortion(2)).padding(8))
 						.push(Container::new(Text::new(product.min_stock)).width(Length::FillPortion(2)).padding(8))
 						.push(Container::new(Text::new(product.observation.clone().unwrap_or("".to_string()))).width(Length::FillPortion(3)).padding(8))
+						.push(
+							Container::new(
+								Button::new(Text::new("Delete"))
+									.style(|theme, status| iced::widget::button::danger(theme, status))
+									.on_press(ProductsScreenMessage::Delete(product.id))
+							).width(Length::FillPortion(1)).align_x(Alignment::Center).padding(8)
+						)
 				)
 			}
 		);
