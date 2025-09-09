@@ -1,5 +1,5 @@
 use iced::{ Alignment, Element, Length };
-use iced::widget::{Container, Column, Row, Text, Button, Space};
+use iced::widget::{Container, Column, Row, Text, Button, Scrollable, Space,};
 
 use crate::infra::db;
 use crate::infra::repositories::product_repository;
@@ -53,17 +53,18 @@ impl ProductsScreen {
 	}	
 
   	pub fn view(&self) -> Element<'static, ProductsScreenMessage> {
+
+		let row_header = Row::new()
+			.spacing(20)
+			.push(Container::new("ID").width(Length::FillPortion(1)).padding(8))
+			.push(Container::new("Name").width(Length::FillPortion(4)).padding(8))
+			.push(Container::new("Unity").width(Length::FillPortion(2)).padding(8))
+			.push(Container::new("Min Stock").width(Length::FillPortion(2)).padding(8))
+			.push(Container::new("Observation").width(Length::FillPortion(3)).padding(8))
+			.push(Container::new("Actions").width(Length::FillPortion(1)).align_x(Alignment::Center).padding(8));
+
 		let rows = self.products.iter().fold(
-			Column::new().push(
-				Row::new()
-				.spacing(20)
-				.push(Container::new("ID").width(Length::FillPortion(1)).padding(8))
-				.push(Container::new("Name").width(Length::FillPortion(4)).padding(8))
-				.push(Container::new("Unity").width(Length::FillPortion(2)).padding(8))
-				.push(Container::new("Min Stock").width(Length::FillPortion(2)).padding(8))
-				.push(Container::new("Observation").width(Length::FillPortion(3)).padding(8))
-				.push(Container::new("Actions").width(Length::FillPortion(1)).align_x(Alignment::Center).padding(8))
-			),
+			Column::new(),
 			|column, product| {
 				column.push(
 					Row::new()
@@ -86,10 +87,9 @@ impl ProductsScreen {
 
 		Column::new()
 			.width(Length::Fill)
-			.padding(DEFAULT_SPACING)
-			.spacing(DEFAULT_SPACING)
 			.push(
 				Row::new()
+				.padding(DEFAULT_SPACING)
 				.width(Length::Fill)
 				.align_y(Alignment::Center)
 				.push(Text::new("Products"))
@@ -98,9 +98,9 @@ impl ProductsScreen {
 					Button::new(Text::new("Add Product")).on_press(ProductsScreenMessage::Create)
 				)
 			)
-			.push(
-				Container::new(rows).center_x(Length::Fill)
-			).into()
-  	}
+			.push(row_header)
+			.push(Scrollable::new(Container::new(rows)))
+			.into()
+	}
 }
 

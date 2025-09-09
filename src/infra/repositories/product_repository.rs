@@ -22,6 +22,17 @@ pub fn list_products(conn: &mut SqliteConnection) -> Result<Vec<Product>, Box<dy
     Ok(prods)
 }
 
+pub fn get_product_by_id(conn: &mut SqliteConnection, product_id: i32) -> Result<Product, Box<dyn Error>> {
+    let product = products::table
+        .find(product_id)
+        .first::<ProductRow>(conn)
+        .expect("Failed to retrieve product");
+
+    let product_item = product.try_into()?;
+
+    Ok(product_item)
+}
+
 pub fn create_product(conn: &mut SqliteConnection, new_product: NewProductRow) -> Result<Product, Box<dyn Error>> {
     diesel::insert_into(products::table)
         .values(&new_product)
