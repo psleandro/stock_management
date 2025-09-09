@@ -1,5 +1,5 @@
-use iced::{ Alignment, Element, Length };
-use iced::widget::{Container, Column, Row, Text, Button, Scrollable, Space,};
+use iced::{ Alignment, Background, Element, Length, Theme, };
+use iced::widget::{container, Container, Column, Row, Text, Button, Scrollable, Space};
 
 use crate::infra::db;
 use crate::infra::repositories::product_repository;
@@ -56,32 +56,45 @@ impl ProductsScreen {
 
 		let row_header = Row::new()
 			.spacing(20)
-			.push(Container::new("ID").width(Length::FillPortion(1)).padding(8))
+			.push(Container::new("ID").width(Length::Fixed(64.0)).padding(8))
 			.push(Container::new("Name").width(Length::FillPortion(4)).padding(8))
 			.push(Container::new("Unity").width(Length::FillPortion(2)).padding(8))
-			.push(Container::new("Min Stock").width(Length::FillPortion(2)).padding(8))
+			.push(Container::new("Min Stock").width(Length::Fixed(88.0)).padding(8))
 			.push(Container::new("Observation").width(Length::FillPortion(3)).padding(8))
-			.push(Container::new("Actions").width(Length::FillPortion(1)).align_x(Alignment::Center).padding(8));
+			.push(Container::new("Actions").width(Length::Fixed(100.0)).align_x(Alignment::Center).padding(8));
 
 		let rows = self.products.iter().fold(
 			Column::new(),
 			|column, product| {
-				column.push(
-					Row::new()
+				
+				let row = Row::new()
 						.spacing(20)
-						.push(Container::new(Text::new(product.id)).width(Length::FillPortion(1)).padding(8))
+						.align_y(Alignment::Center)
+						.push(Container::new(Text::new(product.id)).width(Length::Fixed(64.0)).padding(8))
 						.push(Container::new(Text::new(product.name.clone())).width(Length::FillPortion(4)).padding(8))
 						.push(Container::new(Text::new(product.unity.clone().unwrap_or("".to_string()))).width(Length::FillPortion(2)).padding(8))
-						.push(Container::new(Text::new(product.min_stock)).width(Length::FillPortion(2)).padding(8))
+						.push(Container::new(Text::new(product.min_stock)).width(Length::Fixed(88.0)).padding(8))
 						.push(Container::new(Text::new(product.observation.clone().unwrap_or("".to_string()))).width(Length::FillPortion(3)).padding(8))
 						.push(
 							Container::new(
 								Button::new(Text::new("Delete"))
 									.style(|theme, status| iced::widget::button::danger(theme, status))
 									.on_press(ProductsScreenMessage::Delete(product.id))
-							).width(Length::FillPortion(1)).align_x(Alignment::Center).padding(8)
-						)
-				)
+							).width(Length::Fixed(100.0)).align_x(Alignment::Center).padding(8)
+						);
+
+				let divider = Container::new("")
+					.width(Length::Fill)
+					.height(Length::Fixed(1.0))
+					.style(|theme: &Theme| {
+						let palette = theme.extended_palette();
+						container::Style{
+							background: Some(Background::Color(palette.background.weak.color)),
+							..Default::default()
+						}
+					});
+
+				column.push(row).push(divider)
 			}
 		);
 
