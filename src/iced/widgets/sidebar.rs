@@ -3,7 +3,7 @@ use iced::widget::{button, Button, Container, Column, Text, Theme};
 use iced::border::Radius;
 
 
-use crate::{ScreenId, Message};
+use crate::iced::{ ScreenId, Message };
 
 pub struct SideBar {
     menus: [(&'static str, ScreenId); 5],
