@@ -8,3 +8,6 @@ iced = "*"
 diesel = { version = "2.2.4", features = ["sqlite"] }
 chrono = { version = "0.4" }
 dotenvy = "0.15"
+egui = "0.33.0"
+egui_extras = "0.33.0"
+eframe = "0.33.0" 
