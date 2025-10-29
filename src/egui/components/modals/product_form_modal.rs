@@ -1,5 +1,6 @@
 use eframe::egui;
-use egui::{ComboBox, Id, Modal, Sides};
+use egui::{ComboBox, Id, Modal, RichText, Sides};
+use validator::{Validate, ValidationError};
 
 use crate::infra::db;
 use crate::infra::repositories::product_repository;
@@ -10,6 +11,24 @@ use crate::domain::product::Product;
 const DEFAULT_SPACING: f32 = 16.0;
 const FORM_SPACING: f32 = DEFAULT_SPACING / 2.0;
 
+#[derive(Debug, Default)]
+pub struct FormErrors {
+    pub name: Option<String>,
+    pub min_stock: Option<String>,
+}
+
+#[derive(Validate)]
+pub struct ProductForm { 
+    #[validate(length(min = 2, message = "Name must contain at least two characters"))]
+    name: String,
+    
+    unity: &'static str,
+    
+    #[validate(range(min = 0))]
+    min_stock: i32,
+    observation: String,
+}
+#[derive(Debug)]
 pub struct ProductFormModal {
 	should_close: bool,
 
@@ -17,7 +36,9 @@ pub struct ProductFormModal {
     unity: &'static str,
     min_stock: String,
     observation: String,
+    errors: FormErrors,
 }
+
 
 impl ProductFormModal {
 
@@ -28,19 +49,12 @@ impl ProductFormModal {
             unity: "un",
             min_stock: "".to_owned(),
             observation: "".to_owned(),
+            errors: FormErrors::default()
         }
 	}
 
 	pub fn show(&mut self, ui: &mut egui::Ui) -> (bool, Option<Product>) {
         let mut created_product = None;
-
-        let Self {
-            should_close,
-            name,
-            unity,
-            min_stock,
-            observation,
-        } = self;
 
  	 	let modal = Modal::new(Id::new("New Product")).show(ui.ctx(), |ui| {
 		  ui.heading("New Product");
@@ -49,7 +63,12 @@ impl ProductFormModal {
                 ui.add_space(DEFAULT_SPACING / 2.0);
 
                 ui.label("Name: ");
-                ui.text_edit_singleline(name);
+                ui.text_edit_singleline(&mut self.name);
+                if let Some(error) = &self.errors.name {
+                    ui.label(
+                        RichText::new(error).color(ui.visuals().error_fg_color)
+                    );
+                }
 
                 ui.add_space(FORM_SPACING);
 
@@ -57,58 +76,96 @@ impl ProductFormModal {
                     ui.label("Unity");
                     
                     ComboBox::new("unity", "")
-                    .selected_text(*unity)
+                    .selected_text(self.unity)
                     .show_ui(ui, |ui| {
-                        ui.selectable_value(unity, "un", "un");
+                        ui.selectable_value(
+                            &mut self.unity, "un", "un");
                     });
                 });
 
                 ui.add_space(FORM_SPACING);
 
                 ui.label("Min Stock");
-                ui.text_edit_singleline(min_stock);
+                ui.text_edit_singleline(&mut self.min_stock);
+                if let Some(error) = &self.errors.min_stock {
+                    ui.label(
+                        RichText::new(error).color(ui.visuals().error_fg_color)
+                    );
+                }
 
                 ui.add_space(FORM_SPACING);
 
                 ui.label("Observation");
-                ui.text_edit_multiline(observation);
+                ui.text_edit_multiline(&mut self.observation);
 
                 ui.add_space(DEFAULT_SPACING / 2.0);
                 ui.separator();
                 ui.add_space(FORM_SPACING);
 
-                Sides::new().show(
+                  Sides::new().show(
                     ui,
                     |_ui| {},
                     |ui| {
                         if ui.button("Save").clicked() {
-                           let mut connection = db::establish_connection();
-                            let new_product = NewProductRow {
-                                name: name.clone(),
-                                unity: Some(unity.to_string()),
-                                brand: Some("Brand X".into()),
-                                min_stock: Some(min_stock.parse::<i32>().unwrap()),
-                                observation: Some(observation.clone()),
-                            };
+                           if let Some(product) = self.validate_form() {
+                                let mut connection = db::establish_connection();
+                                let new_product = NewProductRow {
+                                    name: product.name,
+                                    unity: Some(product.unity.into()),
+                                    brand: Some("Brand X".into()),
+                                    min_stock: Some(product.min_stock),
+                                    observation: Some(product.observation),
+                                };
 
-                            if let Ok(created) = product_repository::create_product(&mut connection, new_product) {
-                                created_product = Some(created);
-                            }
-                            
-                            *should_close = true;
+                                if let Ok(created) = product_repository::create_product(&mut connection, new_product) {
+                                    created_product = Some(created);
+                                }
+                                
+                                self.should_close = true;
+                           }
                         }
 
                         if ui.button("Cancel").clicked() {
-                            *should_close = true;
+                            self.should_close = true;
                         }
                     }
                 );
 		});
 
 		if modal.should_close(){
-			*should_close = true;
+			self.should_close = true;
 		}
 
-		(*should_close, created_product)
+		(self.should_close, created_product)
   	}
+
+    fn validate_form(&mut self) -> Option<ProductForm>{
+        self.errors = FormErrors::default();
+
+        let min_stock = match self.min_stock.parse::<i32>() {
+            Ok(value) => value,
+            Err(_) => {
+                self.errors.min_stock = Some("Min stock should be a valide integer".into());
+                -1
+            }
+        };
+
+        let product_data = ProductForm {
+            name: self.name.clone(),
+            min_stock,
+            unity: self.unity,
+            observation: self.observation.clone()
+        };
+
+
+        match product_data.validate() {
+            Ok(_) => Some(product_data),
+            Err(error)=> {
+                if let Some(name_error)= error.field_errors().get("name") {
+                    self.errors.name = Some(name_error[0].clone().message.unwrap_or_default().to_string());
+                }
+                None
+            }
+        }
+    }
 }

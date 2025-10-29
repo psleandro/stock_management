@@ -11,3 +11,4 @@ dotenvy = "0.15"
 egui = "0.33.0"
 egui_extras = "0.33.0"
 eframe = "0.33.0" 
+validator = { version = "0.19", features = ["derive"] }
