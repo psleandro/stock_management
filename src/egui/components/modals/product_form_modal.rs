@@ -1,5 +1,6 @@
 use eframe::egui;
 use egui::{ComboBox, Id, Modal, Sides};
+use validator::{Validate, ValidationError};
 
 use crate::infra::db;
 use crate::infra::repositories::product_repository;
@@ -9,13 +10,17 @@ use crate::domain::product::Product;
 
 const DEFAULT_SPACING: f32 = 16.0;
 const FORM_SPACING: f32 = DEFAULT_SPACING / 2.0;
-
+#[derive(Debug, Validate)]
 pub struct ProductFormModal {
 	should_close: bool,
 
+    #[validate(length(min = 2))]
     name: String,
+    
     unity: &'static str,
-    min_stock: String,
+    
+    #[validate(range(min = 0))]
+    min_stock: i32,
     observation: String,
 }
 
@@ -26,7 +31,7 @@ impl ProductFormModal {
             should_close: false,
             name: "".to_owned(),
             unity: "un",
-            min_stock: "".to_owned(),
+            min_stock: 0,
             observation: "".to_owned(),
         }
 	}
@@ -87,7 +92,7 @@ impl ProductFormModal {
                                 name: name.clone(),
                                 unity: Some(unity.to_string()),
                                 brand: Some("Brand X".into()),
-                                min_stock: Some(min_stock.parse::<i32>().unwrap()),
+                                min_stock: Some(min_stock.clone()),
                                 observation: Some(observation.clone()),
                             };
 
