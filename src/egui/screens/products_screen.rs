@@ -4,21 +4,25 @@ use egui_extras::{Size, StripBuilder, Column, TableBuilder};
 
 use crate::infra::db;
 use crate::infra::repositories::product_repository;
-use crate::infra::models::NewProductRow;
 use crate::domain::product::Product;
+use crate::egui::components::modals::product_form_modal::ProductFormModal;
 
 const DEFAULT_SPACING: f32 = 16.0;
 const ITEM_HEIGHT: f32 = 24.0;
 
 pub struct ProductsScreen {
     pub products: Vec<Product>,
+    pub product_form_modal: Option<ProductFormModal>,
 }
 
 impl ProductsScreen {
     pub fn new() -> Self {
         let mut connection = db::establish_connection();
         let products = product_repository::list_products(&mut connection).unwrap_or_default();
-        Self { products }
+        Self {
+            products,
+            product_form_modal: None,
+        }
     }
 
     pub fn ui(&mut self, ui: &mut egui::Ui) {
@@ -30,17 +34,7 @@ impl ProductsScreen {
             ui.heading("Products");
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui.add(add_product_btn).clicked() {
-                let mut connection = db::establish_connection();
-                let new_product = NewProductRow {
-                    name: format!("Product Large Name Testing It To fill all space, is it possible? {}", self.products.len() + 1),
-                    unity: Some("un".into()),
-                    brand: Some("Brand X".into()),
-                    min_stock: Some(0),
-                    observation: None,
-                };
-                if let Ok(created) = product_repository::create_product(&mut connection, new_product) {
-                    self.products.push(created);
-                }
+                self.product_form_modal = Some(ProductFormModal::new());
             }
             });
         });
@@ -56,6 +50,18 @@ impl ProductsScreen {
                     });
                 });
             });
+
+        if let Some(modal) = self.product_form_modal.as_mut() {
+            let (should_close, created_product) = modal.show(ui);
+
+            if should_close {
+                self.product_form_modal = None;
+
+                if let Some(new_product) = created_product {
+                    self.products.push(new_product);
+                }
+            }
+        }
     }
 
     fn products_table(&mut self, ui: &mut egui::Ui){
