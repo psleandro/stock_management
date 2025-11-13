@@ -34,7 +34,7 @@ impl ProductsScreen {
             ui.heading("Products");
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui.add(add_product_btn).clicked() {
-                self.product_form_modal = Some(ProductFormModal::new());
+                self.product_form_modal = Some(ProductFormModal::new(None));
             }
             });
         });
@@ -52,13 +52,17 @@ impl ProductsScreen {
             });
 
         if let Some(modal) = self.product_form_modal.as_mut() {
-            let (should_close, created_product) = modal.show(ui);
+            let (should_close, upserted_product) = modal.show(ui);
 
             if should_close {
                 self.product_form_modal = None;
 
-                if let Some(new_product) = created_product {
-                    self.products.push(new_product);
+                if let Some(product) = upserted_product {
+                    if let Some(existing_product) = self.products.iter_mut().find(|p| p.id == product.id) {
+                        *existing_product = product;
+                    } else {
+                        self.products.push(product);
+                    }
                 }
             }
         }
@@ -127,6 +131,10 @@ impl ProductsScreen {
 
                             if ui.add(delete_button).clicked() {
                                 to_delete = Some(product.id);
+                            }
+
+                            if ui.add(egui::Button::new("Edit")).clicked() {
+                                self.product_form_modal = Some(ProductFormModal::new(Some(&product)));
                             }
                         });
                     });

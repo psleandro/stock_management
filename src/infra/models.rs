@@ -25,3 +25,14 @@ pub struct NewProductRow {
 	pub min_stock: Option<i32>,
 	pub observation: Option<String>,
 }
+
+#[derive(AsChangeset)]
+#[diesel(table_name=products)]
+pub struct EditProductRow {
+	pub id: i32,
+	pub name: String,
+	pub unity: Option<String>,
+	pub brand: Option<String>,
+	pub min_stock: Option<i32>,
+	pub observation: Option<String>,
+}

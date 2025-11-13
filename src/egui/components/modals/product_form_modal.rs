@@ -1,10 +1,10 @@
 use eframe::egui;
 use egui::{ComboBox, Id, Modal, RichText, Sides};
-use validator::{Validate, ValidationError};
+use validator::{Validate};
 
 use crate::infra::db;
 use crate::infra::repositories::product_repository;
-use crate::infra::models::NewProductRow;
+use crate::infra::models::{NewProductRow, EditProductRow};
 
 use crate::domain::product::Product;
 
@@ -32,6 +32,7 @@ pub struct ProductForm {
 pub struct ProductFormModal {
 	should_close: bool,
 
+    id: Option<i32>,
     name: String,
     unity: &'static str,
     min_stock: String,
@@ -42,14 +43,29 @@ pub struct ProductFormModal {
 
 impl ProductFormModal {
 
-	pub fn new() -> Self {
-		Self { 
-            should_close: false,
-            name: "".to_owned(),
-            unity: "un",
-            min_stock: "".to_owned(),
-            observation: "".to_owned(),
-            errors: FormErrors::default()
+	pub fn new(product: Option<&Product>) -> Self {
+        let errors = FormErrors::default();
+        let should_close = false;
+
+        match product {
+            Some(prod) => Self { 
+                should_close,
+                errors,
+                id: Some(prod.id),
+                name: prod.name.clone(),
+                unity: "un",
+                min_stock: prod.min_stock.to_string(),
+                observation: prod.observation.clone().unwrap_or_default().to_owned(),
+            },
+            None => Self { 
+                should_close,
+                errors,
+                id: None,
+                name: "".to_owned(),
+                unity: "un",
+                min_stock: "".to_owned(),
+                observation: "".to_owned(),
+            }
         }
 	}
 
@@ -57,7 +73,7 @@ impl ProductFormModal {
         let mut created_product = None;
 
  	 	let modal = Modal::new(Id::new("New Product")).show(ui.ctx(), |ui| {
-		  ui.heading("New Product");
+		  ui.heading( if self.id.is_none() { "New Product" } else { "Edit Product" });
 
                 ui.separator();
                 ui.add_space(DEFAULT_SPACING / 2.0);
@@ -109,16 +125,35 @@ impl ProductFormModal {
                         if ui.button("Save").clicked() {
                            if let Some(product) = self.validate_form() {
                                 let mut connection = db::establish_connection();
-                                let new_product = NewProductRow {
-                                    name: product.name,
-                                    unity: Some(product.unity.into()),
-                                    brand: Some("Brand X".into()),
-                                    min_stock: Some(product.min_stock),
-                                    observation: Some(product.observation),
-                                };
+                                
+                                match self.id {
+                                    Some(id,) => {
+                                        let product = EditProductRow {
+                                            id,
+                                            name: product.name,
+                                            unity: Some(product.unity.into()),
+                                            brand: Some("Brand X".into()),
+                                            min_stock: Some(product.min_stock),
+                                            observation: Some(product.observation),
+                                        };
 
-                                if let Ok(created) = product_repository::create_product(&mut connection, new_product) {
-                                    created_product = Some(created);
+                                        if let Ok(updated) = product_repository::edit_product(&mut connection, product) {
+                                            created_product = Some(updated);
+                                        }
+                                    }
+                                    None => {
+                                        let new_product = NewProductRow {
+                                            name: product.name,
+                                            unity: Some(product.unity.into()),
+                                            brand: Some("Brand X".into()),
+                                            min_stock: Some(product.min_stock),
+                                            observation: Some(product.observation),
+                                        };
+
+                                        if let Ok(created) = product_repository::create_product(&mut connection, new_product) {
+                                            created_product = Some(created);
+                                        }
+                                    }
                                 }
                                 
                                 self.should_close = true;

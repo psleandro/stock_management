@@ -1,7 +1,7 @@
 use diesel::prelude::*;
 use std::error::Error;
 
-use crate::infra::models::{ProductRow, NewProductRow};
+use crate::infra::models::{ProductRow, NewProductRow, EditProductRow};
 use crate::infra::schema::products;
 use crate::domain::product::Product;
 
@@ -45,6 +45,28 @@ pub fn create_product(conn: &mut SqliteConnection, new_product: NewProductRow) -
         .expect("Failed to retrieve created product");
 
     let product_item = created_product.try_into()?;
+
+    Ok(product_item)
+}
+
+pub fn edit_product(conn: &mut SqliteConnection, product: EditProductRow) -> Result<Product, Box<dyn Error>> {
+    let product_id = product.id;
+
+    diesel::update(products::table.find(product_id))
+        .set((
+            &product,
+            products::updated_at.eq(Utc::now().format(NAIVE_DATE_TIME_PATTERN).to_string())
+        ))
+        .execute(conn)
+        .expect("Failed to update product");
+
+    
+    let updated_product = products::table
+        .filter(products::id.eq(product_id))
+        .first::<ProductRow>(conn)
+        .expect("Failed to retrieve updated product");
+
+    let product_item = updated_product.try_into()?;
 
     Ok(product_item)
 }
