@@ -1,5 +1,5 @@
 use eframe::egui;
-use egui::{Direction, Layout};
+use egui::{Direction, Label, Layout, Sides};
 use egui_extras::{Size, StripBuilder, Column, TableBuilder};
 
 use crate::infra::db;
@@ -13,6 +13,7 @@ const ITEM_HEIGHT: f32 = 24.0;
 pub struct ProductsScreen {
     pub products: Vec<Product>,
     pub product_form_modal: Option<ProductFormModal>,
+    pub product_to_delete: Option<Product>,
 }
 
 impl ProductsScreen {
@@ -22,6 +23,7 @@ impl ProductsScreen {
         Self {
             products,
             product_form_modal: None,
+            product_to_delete: None,
         }
     }
 
@@ -66,11 +68,13 @@ impl ProductsScreen {
                 }
             }
         }
+
+        if self.product_to_delete.is_some() {
+            self.show_confirm_delete_alert(ui);
+        }
     }
 
     fn products_table(&mut self, ui: &mut egui::Ui){
-        let mut to_delete: Option<i32> = None;
-
         let available_height = ui.available_height();
 
         TableBuilder::new(ui)
@@ -130,7 +134,7 @@ impl ProductsScreen {
                             ).fill(ui.visuals().error_fg_color);
 
                             if ui.add(delete_button).clicked() {
-                                to_delete = Some(product.id);
+                                self.product_to_delete = Some(product.clone());
                             }
 
                             if ui.add(egui::Button::new("Edit")).clicked() {
@@ -138,16 +142,53 @@ impl ProductsScreen {
                             }
                         });
                     });
-                }
+                }                
+            });
+    }
 
-                if let Some(id) = to_delete {
-                    let mut connection = db::establish_connection();
-                    if product_repository::delete_product(&mut connection, id).is_ok() {
-                        if let Some(pos) = self.products.iter().position(|p| p.id == id) {
-                            self.products.remove(pos);
+    fn show_confirm_delete_alert(&mut self, ui: &mut egui::Ui) {
+        let alert = egui::Modal::new(egui::Id::new("Delete Product"))
+            .show(ui.ctx(), |ui| {
+                ui.heading("Delete Product");
+
+                ui.separator();
+                ui.add_space(DEFAULT_SPACING / 2.0);
+
+                ui.add(
+                Label::new(
+                    format!("Are you sure you want to delete product '{}'?",
+                            self.product_to_delete.as_ref().unwrap().name)
+                        )
+                );
+
+                ui.add_space(DEFAULT_SPACING * 2.0);
+                ui.separator();
+                
+                Sides::new().show(
+                    ui,
+                    |_ui| {},
+                    |ui| {
+                        if ui.add(egui::Button::new("Confirm")).clicked() {
+                            let mut connection = db::establish_connection();
+
+                            if product_repository::delete_product(&mut connection, self.product_to_delete.as_ref().unwrap().id).is_ok() {
+                                if let Some(pos) = self.products.iter().position(|p| p.id == self.product_to_delete.as_ref().unwrap().id) {
+                                    self.products.remove(pos);
+                                }
+                            }
+                            self.product_to_delete = None;
+                        }
+
+                        if ui.add(egui::Button::new("Cancel")).clicked() {
+                            self.product_to_delete = None;
                         }
                     }
-                }
+                );
+
             });
+
+        if alert.should_close() {
+            self.product_to_delete = None;
+        }
     }
 }
