@@ -1,11 +1,13 @@
 use eframe::egui;
 use egui::{Direction, Label, Layout, Sides};
 use egui_extras::{Size, StripBuilder, Column, TableBuilder};
+use rfd::FileDialog;
 
 use crate::infra::db;
 use crate::infra::repositories::product_repository;
 use crate::domain::product::Product;
 use crate::egui::components::modals::product_form_modal::ProductFormModal;
+use crate::services::export::export_products::export_products;
 
 const DEFAULT_SPACING: f32 = 16.0;
 const ITEM_HEIGHT: f32 = 24.0;
@@ -36,8 +38,17 @@ impl ProductsScreen {
             ui.heading("Products");
             ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                 if ui.add(add_product_btn).clicked() {
-                self.product_form_modal = Some(ProductFormModal::new(None));
-            }
+                    self.product_form_modal = Some(ProductFormModal::new(None));
+                }
+
+                if ui.add(egui::Button::new("Export")).clicked() {
+                    match FileDialog::new().set_file_name("products.xlsx").save_file() {
+                        Some(path) => {
+                            let _ = export_products(&self.products, path);
+                        },
+                        None => {}
+                    };
+                }
             });
         });
 

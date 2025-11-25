@@ -2,6 +2,7 @@ mod iced;
 mod infra;
 mod domain;
 mod egui;
+mod services;
 
 
 fn main() {
