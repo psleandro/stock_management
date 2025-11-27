@@ -157,9 +157,14 @@ impl ProductsScreen {
                     });
                 });
             })
-            .body(|mut body| {
-                for product in &self.products {
-                    body.row(ITEM_HEIGHT, |mut row| {
+            .body(|body| {
+                body.rows(
+                    ITEM_HEIGHT,
+                    self.products.len(),
+                    |mut row| {
+                        let product_index = row.index();
+                        let product = &self.products[product_index];
+
                         row.col(|ui| { ui.label(product.id.to_string()); });
                         row.col(|ui| { ui.label(&product.name); });
                         row.col(|ui| {
@@ -182,8 +187,8 @@ impl ProductsScreen {
                                 self.product_form_modal = Some(ProductFormModal::new(Some(&product)));
                             }
                         });
-                    });
-                }                
+                    }
+                );          
             });
     }
 
