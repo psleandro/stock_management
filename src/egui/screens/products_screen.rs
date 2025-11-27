@@ -2,12 +2,14 @@ use eframe::egui;
 use egui::{Direction, Label, Layout, Sides};
 use egui_extras::{Size, StripBuilder, Column, TableBuilder};
 use rfd::FileDialog;
+use std::error::Error;
 
 use crate::infra::db;
 use crate::infra::repositories::product_repository;
 use crate::domain::product::Product;
 use crate::egui::components::modals::product_form_modal::ProductFormModal;
 use crate::services::export::export_products::export_products;
+use crate::services::import::import_products::import_products;
 
 const DEFAULT_SPACING: f32 = 16.0;
 const ITEM_HEIGHT: f32 = 24.0;
@@ -16,6 +18,7 @@ pub struct ProductsScreen {
     pub products: Vec<Product>,
     pub product_form_modal: Option<ProductFormModal>,
     pub product_to_delete: Option<Product>,
+    pub error: Option<Box<dyn Error>>,
 }
 
 impl ProductsScreen {
@@ -26,6 +29,7 @@ impl ProductsScreen {
             products,
             product_form_modal: None,
             product_to_delete: None,
+            error: None,
         }
     }
 
@@ -48,6 +52,28 @@ impl ProductsScreen {
                         },
                         None => {}
                     };
+                }
+
+                if ui.add(egui::Button::new("Import")).clicked() {
+                    if let Some(path) = FileDialog::new().pick_file() {
+                        match import_products(path) {
+                            Ok(new_products_row) => {
+                                let mut conn = db::establish_connection();
+
+                                let creation_result = product_repository::create_products(
+                                    &mut conn,
+                                    &new_products_row
+                                );
+
+                                if let Ok(mut created_products) = creation_result {
+                                    self.products.append(&mut created_products);
+                                }
+                            },
+                            Err(error) => {
+                                self.error = Some(error);
+                            }
+                        }
+                    }
                 }
             });
         });
@@ -82,6 +108,10 @@ impl ProductsScreen {
 
         if self.product_to_delete.is_some() {
             self.show_confirm_delete_alert(ui);
+        }
+
+        if self.error.is_some() {
+           self.show_error_message(ui);
         }
     }
 
@@ -200,6 +230,40 @@ impl ProductsScreen {
 
         if alert.should_close() {
             self.product_to_delete = None;
+        }
+    }
+
+    fn show_error_message(&mut self, ui: &mut egui::Ui){
+        if let Some(error) = &self.error {
+            let error_message = error.to_string();
+
+            let error_alert = egui::Modal::new(egui::Id::new("Error Message"))
+                .show(ui.ctx(), |ui| {
+                    ui.heading("Error");
+
+                    ui.separator();
+                    ui.add_space(DEFAULT_SPACING / 2.0);
+
+                    ui.label(error_message);
+
+                    ui.add_space(DEFAULT_SPACING);
+                    ui.separator();
+
+
+                    Sides::new().show(
+                        ui,
+                        |_ui| {},
+                        |ui| {
+                            if ui.button("OK").clicked() {
+                                self.error = None;
+                            }
+                        }
+                    );
+                });
+
+            if error_alert.should_close() {
+                self.error = None;
+            }
         }
     }
 }

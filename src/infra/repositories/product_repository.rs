@@ -49,6 +49,26 @@ pub fn create_product(conn: &mut SqliteConnection, new_product: NewProductRow) -
     Ok(product_item)
 }
 
+pub fn create_products(conn: &mut SqliteConnection, new_products: &[NewProductRow]) -> Result<Vec<Product>, Box<dyn Error>> {
+    diesel::insert_into(products::table)
+        .values(new_products)
+        .execute(conn)
+        .expect("Failed to insert products");
+
+    let created_products: Vec<ProductRow> = products::table
+        .order(products::id.desc())
+        .limit(new_products.len() as i64)
+        .load(conn)
+        .expect("Failed to retrieve created products");
+
+    let new_products = created_products.into_iter()
+        .rev()
+        .map(|p| p.try_into())
+        .collect::<Result<Vec<_>, _>>()?;
+
+    Ok(new_products)
+}
+
 pub fn edit_product(conn: &mut SqliteConnection, product: EditProductRow) -> Result<Product, Box<dyn Error>> {
     let product_id = product.id;
 
