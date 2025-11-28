@@ -19,17 +19,19 @@ pub struct ProductsScreen {
     pub product_form_modal: Option<ProductFormModal>,
     pub product_to_delete: Option<Product>,
     pub error: Option<Box<dyn Error>>,
+    pub search: String,
 }
 
 impl ProductsScreen {
     pub fn new() -> Self {
-        let mut connection = db::establish_connection();
-        let products = product_repository::list_products(&mut connection).unwrap_or_default();
+        let products = ProductsScreen::get_products_list("");
+
         Self {
-            products,
+            products: products,
             product_form_modal: None,
             product_to_delete: None,
             error: None,
+            search: String::new(),
         }
     }
 
@@ -75,6 +77,11 @@ impl ProductsScreen {
                         }
                     }
                 }
+            
+                if ui.add(egui::TextEdit::singleline(&mut self.search).hint_text("Search for product...")).changed() {
+                    let filtered_products = ProductsScreen::get_products_list(&self.search);
+                    self.products = filtered_products;
+                };
             });
         });
 
@@ -270,5 +277,14 @@ impl ProductsScreen {
                 self.error = None;
             }
         }
+    }
+
+    fn get_products_list(search: &str) -> Vec<Product> {
+        let mut connection = db::establish_connection();
+
+        let products = product_repository::list_products(&mut connection, search)
+            .unwrap_or_default();
+
+        products
     }
 }

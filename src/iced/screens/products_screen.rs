@@ -23,7 +23,7 @@ pub enum ProductsScreenMessage {
 impl ProductsScreen {
 		pub fn new() -> Self {
 			let mut connection = db::establish_connection();
-			let products = product_repository::list_products(&mut connection).unwrap();
+			let products = product_repository::list_products(&mut connection, "").unwrap();
 			Self { products }
 	}
 

@@ -9,11 +9,27 @@ use chrono::Utc;
 
 const NAIVE_DATE_TIME_PATTERN: &str =  "%Y-%m-%d %H:%M:%S";
 
-pub fn list_products(conn: &mut SqliteConnection) -> Result<Vec<Product>, Box<dyn Error>> {
-  	let product_list: Vec<ProductRow> = products::table
-        .filter(products::deleted_at.is_null())
-        .load(conn)
-        .expect("Error loading products");
+pub fn list_products(conn: &mut SqliteConnection, search: &str) -> Result<Vec<Product>, Box<dyn Error>> {
+    let search_like = format!("%{}%", search);
+
+  	let mut products_query= products::table.filter(products::deleted_at.is_null()).into_boxed();
+
+    let filter_expression =  products::name.like(&search_like)
+        .or(products::brand.like(&search_like))
+        .or(products::observation.like(&search_like))
+        .or(products::unity.like(&search_like));
+
+    if let Ok(search_number) = search.parse::<i32>(){
+        products_query = products_query.filter(
+            filter_expression
+                .or(products::id.eq(search_number))
+                .or(products::min_stock.eq(search_number))
+        );
+    } else {
+        products_query = products_query.filter(filter_expression);
+    }
+        
+    let product_list: Vec<ProductRow>  = products_query.load(conn).expect("Error loading products");
 
   	let prods = product_list.into_iter()
     	.map(|product| product.try_into())
