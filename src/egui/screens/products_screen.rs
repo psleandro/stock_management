@@ -137,7 +137,13 @@ impl ProductsScreen {
                     .clip(true)
                     .resizable(false),
             )                                  
-            .column(Column::exact(88.0))      
+            .column(
+                Column::auto()
+                .at_least(60.0)
+                .at_most(240.0)
+                .clip(true)
+            )      
+            .column(Column::exact(88.0))
             .column(Column::exact(88.0))        
             .column(
                 Column::auto()
@@ -151,6 +157,7 @@ impl ProductsScreen {
             .header(ITEM_HEIGHT, |mut header| {
                 header.col(|ui| { ui.heading("ID"); });
                 header.col(|ui| { ui.heading("Name"); });
+                header.col(|ui| { ui.heading("Brand"); });
                 header.col(|ui| {
                     ui.with_layout(Layout::centered_and_justified(Direction::LeftToRight), |ui| {
                         ui.heading("Unity");
@@ -174,6 +181,7 @@ impl ProductsScreen {
 
                         row.col(|ui| { ui.label(product.id.to_string()); });
                         row.col(|ui| { ui.label(&product.name); });
+                        row.col(|ui| { ui.label(product.brand.clone().unwrap_or_default()); });
                         row.col(|ui| {
                             ui.with_layout(Layout::centered_and_justified(Direction::LeftToRight), |ui| {
                                 ui.label(product.unity.clone().unwrap_or_default());

@@ -23,6 +23,8 @@ pub struct ProductForm {
     name: String,
     
     unity: &'static str,
+
+    brand: String,
     
     #[validate(range(min = 0))]
     min_stock: i32,
@@ -34,6 +36,7 @@ pub struct ProductFormModal {
 
     id: Option<i32>,
     name: String,
+    brand: String,
     unity: &'static str,
     min_stock: String,
     observation: String,
@@ -53,15 +56,17 @@ impl ProductFormModal {
                 errors,
                 id: Some(prod.id),
                 name: prod.name.clone(),
+                brand: prod.brand.clone().unwrap_or_default(),
                 unity: "un",
                 min_stock: prod.min_stock.to_string(),
-                observation: prod.observation.clone().unwrap_or_default().to_owned(),
+                observation: prod.observation.clone().unwrap_or_default(),
             },
             None => Self { 
                 should_close,
                 errors,
                 id: None,
                 name: "".to_owned(),
+                brand: "".to_owned(),
                 unity: "un",
                 min_stock: "".to_owned(),
                 observation: "".to_owned(),
@@ -85,6 +90,11 @@ impl ProductFormModal {
                         RichText::new(error).color(ui.visuals().error_fg_color)
                     );
                 }
+
+                ui.add_space(FORM_SPACING);
+
+                ui.label("Brand");
+                ui.text_edit_singleline(&mut self.brand);
 
                 ui.add_space(FORM_SPACING);
 
@@ -132,7 +142,7 @@ impl ProductFormModal {
                                             id,
                                             name: product.name,
                                             unity: Some(product.unity.into()),
-                                            brand: Some("Brand X".into()),
+                                            brand: Some(product.brand),
                                             min_stock: Some(product.min_stock),
                                             observation: Some(product.observation),
                                         };
@@ -145,7 +155,7 @@ impl ProductFormModal {
                                         let new_product = NewProductRow {
                                             name: product.name,
                                             unity: Some(product.unity.into()),
-                                            brand: Some("Brand X".into()),
+                                            brand: Some(product.brand),
                                             min_stock: Some(product.min_stock),
                                             observation: Some(product.observation),
                                         };
@@ -187,6 +197,7 @@ impl ProductFormModal {
 
         let product_data = ProductForm {
             name: self.name.clone(),
+            brand: self.brand.clone(),
             min_stock,
             unity: self.unity,
             observation: self.observation.clone()
