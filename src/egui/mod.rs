@@ -3,6 +3,7 @@ pub mod screens;
 pub mod widgets;
 
 use eframe::egui;
+use crate::egui::screens::suppliers_screen::SuppliersScreen;
 use crate::egui::widgets::sidebar::SideBar;
 use crate::egui::screens::products_screen::ProductsScreen;
 
@@ -18,6 +19,7 @@ pub enum ScreenId {
 pub struct StockManagement {
     pub active_screen: ScreenId,
     pub products_screen: Option<ProductsScreen>,
+    pub suppliers_screen: Option<SuppliersScreen>,
     pub sidebar: SideBar,
 }
 
@@ -26,6 +28,7 @@ impl Default for StockManagement {
         Self {
             active_screen: ScreenId::Dashboard,
             products_screen: Some(ProductsScreen::new()),
+            suppliers_screen: Some(SuppliersScreen::new()),
             sidebar: SideBar::new(),
         }
     }
@@ -46,7 +49,11 @@ impl eframe::App for StockManagement {
                         screen.ui(ui);
                     }
                 }
-                ScreenId::Suppliers => { ui.label("Suppliers content"); }
+                ScreenId::Suppliers => { 
+                    if let Some(screen) = &mut self.suppliers_screen {
+                        screen.ui(ui);
+                    }
+                 }
                 ScreenId::Places => { ui.label("Places content"); }
                 ScreenId::InventoryTransactions => { ui.label("Inventory content"); }
             }
