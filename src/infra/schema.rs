@@ -1,6 +1,16 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
+    places (id) {
+        id -> Integer,
+        name -> Text,
+        created_at -> Text,
+        updated_at -> Text,
+        deleted_at -> Nullable<Text>,
+    }
+}
+
+diesel::table! {
     products (id) {
         id -> Integer,
         name -> Text,
@@ -24,4 +34,4 @@ diesel::table! {
     }
 }
 
-diesel::allow_tables_to_appear_in_same_query!(products, suppliers,);
+diesel::allow_tables_to_appear_in_same_query!(places, products, suppliers,);
