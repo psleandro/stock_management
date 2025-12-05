@@ -3,6 +3,7 @@ pub mod screens;
 pub mod widgets;
 
 use eframe::egui;
+use crate::egui::screens::dashboard_screen::DashboardScreen;
 use crate::egui::screens::places_screen::PlacesScreen;
 use crate::egui::screens::suppliers_screen::SuppliersScreen;
 use crate::egui::widgets::sidebar::SideBar;
@@ -19,6 +20,7 @@ pub enum ScreenId {
 
 pub struct StockManagement {
     pub active_screen: ScreenId,
+    pub dashboard_screen: Option<DashboardScreen>,
     pub places_screen: Option<PlacesScreen>,
     pub products_screen: Option<ProductsScreen>,
     pub suppliers_screen: Option<SuppliersScreen>,
@@ -29,6 +31,7 @@ impl Default for StockManagement {
     fn default() -> Self {
         Self {
             active_screen: ScreenId::Dashboard,
+            dashboard_screen: Some(DashboardScreen::new()),
             places_screen: Some(PlacesScreen::new()),
             products_screen: Some(ProductsScreen::new()),
             suppliers_screen: Some(SuppliersScreen::new()),
@@ -46,7 +49,11 @@ impl eframe::App for StockManagement {
 
         egui::CentralPanel::default().show(ctx, |ui| {
             match self.active_screen {
-                ScreenId::Dashboard => { ui.label("Dashboard content"); }
+                ScreenId::Dashboard => {
+                    if let Some(screen) = &mut self.dashboard_screen {
+                        screen.ui(ui);
+                    }
+                }
                 ScreenId::Products => {
                     if let Some(screen) = &mut self.products_screen {
                         screen.ui(ui);
