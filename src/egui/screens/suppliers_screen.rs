@@ -1,10 +1,15 @@
 use eframe::egui;
 use egui::{Direction, Label, Layout, Sides};
 use egui_extras::{Column, Size, StripBuilder, TableBuilder};
+use rfd::FileDialog;
 use std::error::Error;
 
+use crate::infra::db;
+use crate::infra::repositories::supplier_repository;
 use crate::domain::supplier::Supplier;
 use crate::egui::components::modals::supplier_form_modal::SupplierFormModal;
+use crate::services::export::export_suppliers::export_suppliers;
+use crate::services::import::import_suppliers::import_suppliers;
 
 const DEFAULT_SPACING: f32 = 16.0;
 const ITEM_HEIGHT: f32 = 24.0;
@@ -19,8 +24,10 @@ pub struct SuppliersScreen {
 
 impl SuppliersScreen {
     pub fn new() -> Self {
+        let suppliers = SuppliersScreen::get_suppliers_list("");
+
         Self {
-            suppliers: Vec::new(),
+            suppliers,
             supplier_form_modal: None,
             supplier_to_delete: None,
             error: None,
@@ -41,9 +48,41 @@ impl SuppliersScreen {
                     self.supplier_form_modal = Some(SupplierFormModal::new(None));
                 }
 
-                ui.add(egui::Button::new("Export"));
-                ui.add(egui::Button::new("Import"));
-                ui.add(egui::TextEdit::singleline(&mut self.search).hint_text("Search for supplier..."));
+                if ui.add(egui::Button::new("Export")).clicked() {
+                    match FileDialog::new().set_file_name("suppliers.xlsx").save_file() {
+                        Some(path) => {
+                            let _ = export_suppliers(&self.suppliers, path);
+                        },
+                        None => {}
+                    };
+                }
+
+                if ui.add(egui::Button::new("Import")).clicked() {
+                    if let Some(path) = FileDialog::new().pick_file() {
+                        match import_suppliers(path) {
+                            Ok(new_suppliers_row) => {
+                                let mut conn = db::establish_connection();
+
+                                let creation_result = supplier_repository::create_suppliers(
+                                    &mut conn,
+                                    &new_suppliers_row
+                                );
+
+                                if let Ok(mut created_suppliers) = creation_result {
+                                    self.suppliers.append(&mut created_suppliers);
+                                }
+                            },
+                            Err(error) => {
+                                self.error = Some(error);
+                            }
+                        }
+                    }
+                }
+            
+                if ui.add(egui::TextEdit::singleline(&mut self.search).hint_text("Search for supplier...")).changed() {
+                    let filtered_suppliers = SuppliersScreen::get_suppliers_list(&self.search);
+                    self.suppliers = filtered_suppliers;
+                };
             });
         });
 
@@ -162,6 +201,14 @@ impl SuppliersScreen {
                     |_ui| {},
                     |ui| {
                         if ui.add(egui::Button::new("Confirm")).clicked() {
+                           let mut connection = db::establish_connection();
+
+                            if supplier_repository::delete_supplier(&mut connection, self.supplier_to_delete.as_ref().unwrap().id).is_ok() {
+                                if let Some(pos) = self.suppliers.iter().position(|p| p.id == self.supplier_to_delete.as_ref().unwrap().id) {
+                                    self.suppliers.remove(pos);
+                                }
+                            }
+                           
                             self.supplier_to_delete = None;
                         }
 
@@ -210,5 +257,14 @@ impl SuppliersScreen {
                 self.error = None;
             }
         }
+    }
+
+    fn get_suppliers_list(search: &str) -> Vec<Supplier> {
+        let mut connection = db::establish_connection();
+
+        let suppliers = supplier_repository::list_suppliers(&mut connection, search)
+            .unwrap_or_default();
+
+        suppliers
     }
 }
